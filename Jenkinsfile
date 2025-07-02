@@ -8,24 +8,15 @@ pipeline {
             }
         }
 
-        stage('Deploy to Nginx Directory') {
+        stage('Deploy to Nginx Container') {
             steps {
                 script {
-                    // Adjust this path if Nginx serves a different location
-                    def deployPath = '/var/www/Myproject'
-                    
-                    // Remove old files
-                    sh "sudo rm -rf ${deployPath}/*"
-
-                    // Copy new files
-                    sh "sudo cp -r * ${deployPath}/"
+                    // Copy index.html to Nginx container
+                    sh '''
+                    docker cp index.html webserver01:/usr/share/nginx/html/index.html
+                    docker exec webserver01 nginx -s reload || true
+                    '''
                 }
-            }
-        }
-
-        stage('Reload Nginx') {
-            steps {
-                sh "sudo systemctl reload nginx"
             }
         }
     }
