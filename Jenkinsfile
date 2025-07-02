@@ -11,9 +11,8 @@ pipeline {
         stage('Deploy to Nginx Container') {
             steps {
                 script {
-                    // Copy index.html to Nginx container
                     sh '''
-                    docker cp index.html webserver01:/usr/share/nginx/html/index.html
+                    docker cp . webserver01:/usr/share/nginx/html/
                     docker exec webserver01 nginx -s reload || true
                     '''
                 }
