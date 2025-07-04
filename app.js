@@ -2,7 +2,7 @@
 const http = require('http');
 
 const server = http.createServer((req, res) => {
-  res.end('👋 Welcome to the Matrix.\n');
+  res.end('Welcome to the Matrix.\n');
 });
 
 server.listen(3000, () => {
