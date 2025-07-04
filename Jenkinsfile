@@ -8,13 +8,22 @@ pipeline {
             }
         }
 
-        stage('Deploy to Nginx Container') {
+        stage('Build Docker Image') {
             steps {
                 script {
-                    sh '''
-                    docker cp . webserver01:/usr/share/nginx/html/
-                    docker exec webserver01 nginx -s reload || true
-                    '''
+                    sh 'docker build -t my-nginx-image .'
+                }
+            }
+        }
+
+        stage('Run Docker Container') {
+            steps {
+                script {
+                    // Remove old container if it exists
+                    sh 'docker rm -f webserver01 || true'
+
+                    // Run the new container
+                    sh 'docker run -d --name webserver01 -p 13001:80 my-nginx-image'
                 }
             }
         }
