@@ -10,38 +10,43 @@ pipeline {
 
         stage('Build Docker Image') {
             steps {
-                sh 'docker build -t my-nginx-image .'
+                script {
+                    sh 'docker build -t my-nginx-image .'
+                }
             }
         }
 
-        stage('Scan Image with Trivy') {
+        stage('Install Trivy & Generate Report') {
             steps {
-                sh '''#!/bin/bash
-                    set -e
+                script {
+                    sh '''#!/bin/bash
+                        set -e
 
-                    # Install Trivy if not already installed
-                    if ! command -v trivy &> /dev/null; then
-                        echo "Installing Trivy..."
-                        apt update && apt install -y wget gnupg2
-                        wget -q https://github.com/aquasecurity/trivy/releases/download/v0.64.1/trivy_0.64.1_Linux-64bit.deb
-                        dpkg -i trivy_0.64.1_Linux-64bit.deb
-                    fi
+                        echo "Installing dependencies..."
+                        apt-get update && apt-get install -y wget gnupg2 dpkg
 
-                    # Download HTML report template
-                    wget -q -O html.tpl https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/html.tpl
+                        echo "Downloading Trivy..."
+                        wget -q https://github.com/aquasecurity/trivy/releases/download/v0.50.2/trivy_0.50.2_Linux-64bit.deb
+                        dpkg -i trivy_0.50.2_Linux-64bit.deb
 
-                    # Run Trivy scan and generate HTML report
-                    trivy image --format template --template "@html.tpl" -o trivy-report.html my-nginx-image
-                '''
+                        echo "Downloading HTML template..."
+                        wget -q -O html.tpl https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/html.tpl
+
+                        echo "Running Trivy scan..."
+                        trivy image --format template --template "@html.tpl" -o trivy-report.html my-nginx-image
+                    '''
+                }
             }
         }
 
         stage('Run Docker Container') {
             steps {
-                sh '''#!/bin/bash
-                    docker rm -f webserver01 || true
-                    docker run -d --name webserver01 -p 13001:80 my-nginx-image
-                '''
+                script {
+                    sh '''#!/bin/bash
+                        docker rm -f webserver01 || true
+                        docker run -d --name webserver01 -p 13001:80 my-nginx-image
+                    '''
+                }
             }
         }
     }
@@ -51,10 +56,10 @@ pipeline {
             archiveArtifacts artifacts: 'trivy-report.html', fingerprint: true
 
             publishHTML([
-                reportName: 'Trivy Vulnerability Report',
-                reportDir: '.',
+                reportName : 'Trivy Vulnerability Report',
+                reportDir  : '.',
                 reportFiles: 'trivy-report.html',
-                keepAll: true
+                keepAll    : true
             ])
         }
     }
