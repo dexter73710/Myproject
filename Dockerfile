@@ -5,18 +5,18 @@ WORKDIR /app
 # Install nginx
 RUN apk add --no-cache nginx && mkdir -p /run/nginx
 
-# Copy package.json and lock file first (for clean layer caching)
+# Copy package files first for layer caching
 COPY package.json package-lock.json ./
 
-# Install npm-force-resolutions to resolve transitive CVEs
+# Force all transitive brace-expansion versions to 4.0.1
 RUN npm install npm-force-resolutions --save-dev && \
     npx npm-force-resolutions && \
     npm ci --omit=dev
 
-# Now copy rest of the app
+# Now copy the rest of your app
 COPY . .
 
-# Copy Nginx config
+# Copy nginx config
 COPY default.conf /etc/nginx/http.d/default.conf
 
 EXPOSE 80
