@@ -10,43 +10,35 @@ pipeline {
 
         stage('Build Docker Image') {
             steps {
-                script {
-                    sh 'docker build -t my-nginx-image .'
-                }
+                sh 'docker build -t my-nginx-image .'
             }
         }
 
-        stage('Install Trivy & Generate Report') {
+        stage('Trivy Scan & Report') {
             steps {
-                script {
-                    sh '''#!/bin/bash
-                        set -e
+                sh '''#!/bin/bash
+                    set -e
+                    apt update && apt install -y wget gnupg2 dpkg
 
-                        echo "Installing dependencies..."
-                        apt-get update && apt-get install -y wget gnupg2 dpkg
+                    # Install Trivy
+                    wget -q https://github.com/aquasecurity/trivy/releases/download/v0.64.1/trivy_0.64.1_Linux-64bit.deb
+                    dpkg -i trivy_0.64.1_Linux-64bit.deb
 
-                        echo "Downloading Trivy..."
-                        wget -q https://github.com/aquasecurity/trivy/releases/download/v0.50.2/trivy_0.50.2_Linux-64bit.deb
-                        dpkg -i trivy_0.50.2_Linux-64bit.deb
+                    # Get HTML template
+                    wget -q -O html.tpl https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/html.tpl
 
-                        echo "Downloading HTML template..."
-                        wget -q -O html.tpl https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/html.tpl
-
-                        echo "Running Trivy scan..."
-                        trivy image --format template --template "@html.tpl" -o trivy-report.html my-nginx-image
-                    '''
-                }
+                    # Scan and generate report
+                    trivy image --format template --template "@html.tpl" -o trivy-report.html my-nginx-image
+                '''
             }
         }
 
         stage('Run Docker Container') {
             steps {
-                script {
-                    sh '''#!/bin/bash
-                        docker rm -f webserver01 || true
-                        docker run -d --name webserver01 -p 13001:80 my-nginx-image
-                    '''
-                }
+                sh '''
+                    docker rm -f webserver01 || true
+                    docker run -d --name webserver01 -p 13001:80 my-nginx-image
+                '''
             }
         }
     }
@@ -54,7 +46,6 @@ pipeline {
     post {
         always {
             archiveArtifacts artifacts: 'trivy-report.html', fingerprint: true
-
             publishHTML([
                 reportName : 'Trivy Vulnerability Report',
                 reportDir  : '.',
