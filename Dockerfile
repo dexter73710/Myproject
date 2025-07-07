@@ -1,25 +1,30 @@
-# Use a minimal base image to reduce attack surface
-FROM node:22.2-slim
+FROM debian:bookworm-slim
+
+ARG NODE_VERSION=22
 
 # Set working directory
-WORKDIR /usr/src/app
+WORKDIR /var/www/nodeapp
 
-# Install Nginx only (no curl, gnupg2, etc.)
+# Install dependencies, Node.js and Nginx
 RUN apt-get update && \
-    apt-get install -y nginx --no-install-recommends && \
-    rm -rf /var/lib/apt/lists/*
+    apt-get install -y curl gnupg2 ca-certificates lsb-release nginx && \
+    curl -fsSL https://deb.nodesource.com/setup_${NODE_VERSION}.x | bash - && \
+    apt-get install -y nodejs && \
+    apt-get upgrade -y && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Copy app files
+# Copy application code
 COPY . .
 
-# Overwrite the default Nginx site config
+# Replace Nginx default config
 COPY default.conf /etc/nginx/sites-available/default
 
-# Install node modules
-RUN npm install --omit=dev
+# Install Node.js dependencies
+RUN npm install
 
 # Expose ports
-EXPOSE 80 443
+EXPOSE 80
+EXPOSE 443
 
-# Start both nginx and the node app
-CMD ["sh", "-c", "service nginx start && npm start"]
+# Start services
+CMD ["bash", "-c", "npm start & service nginx start && tail -f /dev/null"]
