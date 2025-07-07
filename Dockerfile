@@ -1,30 +1,23 @@
-FROM debian:bookworm-slim
-
-ARG NODE_VERSION=22
+FROM node:22-alpine
 
 # Set working directory
-WORKDIR /var/www/nodeapp
+WORKDIR /app
 
-# Install dependencies, Node.js and Nginx
-RUN apt-get update && \
-    apt-get install -y curl gnupg2 ca-certificates lsb-release nginx && \
-    curl -fsSL https://deb.nodesource.com/setup_${NODE_VERSION}.x | bash - && \
-    apt-get install -y nodejs && \
-    apt-get upgrade -y && \
-    apt-get clean && rm -rf /var/lib/apt/lists/*
+# Install Nginx only (no curl, gnupg, etc.)
+RUN apk add --no-cache nginx && \
+    mkdir -p /run/nginx
 
-# Copy application code
+# Copy app code
 COPY . .
 
-# Replace Nginx default config
-COPY default.conf /etc/nginx/sites-available/default
+# Copy Nginx config
+COPY default.conf /etc/nginx/http.d/default.conf
 
-# Install Node.js dependencies
-RUN npm install
+# Install only production dependencies
+RUN npm ci --omit=dev || npm install --omit=dev
 
-# Expose ports
+# Expose only needed port
 EXPOSE 80
-EXPOSE 443
 
-# Start services
-CMD ["bash", "-c", "npm start & service nginx start && tail -f /dev/null"]
+# Start both services
+CMD ["sh", "-c", "npm start & nginx -g 'daemon off;'"]
