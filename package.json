@@ -3,7 +3,13 @@
   "version": "1.0.0",
   "main": "app.js",
   "scripts": {
+    "preinstall": "npx npm-force-resolutions",
     "start": "node app.js"
   },
-  "dependencies": {}
+  "dependencies": {
+    "brace-expansion": "^4.0.1"
+  },
+  "resolutions": {
+    "brace-expansion": "^4.0.1"
+  }
 }
