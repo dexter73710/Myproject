@@ -19,11 +19,16 @@ pipeline {
         stage('Run Docker Container') {
             steps {
                 script {
-                    // Remove old container if it exists
                     sh 'docker rm -f webserver01 || true'
-
-                    // Run the new container
                     sh 'docker run -d --name webserver01 -p 13001:80 my-nginx-image'
+                }
+            }
+        }
+
+        stage('Trivy Scan') {
+            steps {
+                script {
+                    sh 'trivy image my-nginx-image'
                 }
             }
         }
