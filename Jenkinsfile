@@ -19,8 +19,7 @@ pipeline {
         stage('Scan Image with Trivy') {
             steps {
                 script {
-                    sh '''
-                        # Install Trivy if not available
+                    sh '''#!/bin/bash
                         if ! command -v trivy &> /dev/null; then
                             echo "Installing Trivy..."
                             apt update && apt install -y wget gnupg2
@@ -28,12 +27,10 @@ pipeline {
                             dpkg -i trivy_0.64.1_Linux-64bit.deb
                         fi
 
-                        # Download HTML template if missing
-                        if [ ! -f html.tpl ]; then
-                          wget https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/html.tpl
-                        fi
+                        echo "Downloading HTML template..."
+                        wget -q -O html.tpl https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/html.tpl
 
-                        # Run scan and generate HTML report
+                        echo "Running Trivy Scan..."
                         trivy image --format template --template "@html.tpl" -o trivy-report.html my-nginx-image
                     '''
                 }
@@ -43,5 +40,25 @@ pipeline {
         stage('Run Docker Container') {
             steps {
                 script {
-                    sh 'docker rm -f webserver01 || true'
-                    sh 'docker run -d --nam
+                    sh '''#!/bin/bash
+                        docker rm -f webserver01 || true
+                        docker run -d --name webserver01 -p 13001:80 my-nginx-image
+                    '''
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            archiveArtifacts artifacts: 'trivy-report.html', fingerprint: true
+
+            publishHTML([
+                reportName : 'Trivy Vulnerability Report',
+                reportDir  : '.',
+                reportFiles: 'trivy-report.html',
+                keepAll    : true
+            ])
+        }
+    }
+}
