@@ -16,19 +16,28 @@ pipeline {
             }
         }
 
+        stage('Scan Image with Trivy') {
+            steps {
+                script {
+                    sh '''
+                        if ! command -v trivy &> /dev/null; then
+                            echo "Installing Trivy..."
+                            wget -q https://github.com/aquasecurity/trivy/releases/download/v0.64.1/trivy_0.64.1_Linux-64bit.deb
+                            dpkg -i trivy_0.64.1_Linux-64bit.deb
+                        fi
+
+                        echo "Running Trivy Scan..."
+                        trivy image my-nginx-image
+                    '''
+                }
+            }
+        }
+
         stage('Run Docker Container') {
             steps {
                 script {
                     sh 'docker rm -f webserver01 || true'
                     sh 'docker run -d --name webserver01 -p 13001:80 my-nginx-image'
-                }
-            }
-        }
-
-        stage('Trivy Scan') {
-            steps {
-                script {
-                    sh 'trivy image my-nginx-image'
                 }
             }
         }
