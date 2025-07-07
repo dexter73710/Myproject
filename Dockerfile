@@ -1,36 +1,35 @@
 ARG Version=22.04
 FROM ubuntu:$Version
 
-# Set working directory
+# Set noninteractive mode to avoid user prompts
+ENV DEBIAN_FRONTEND=noninteractive
+
 WORKDIR /var/www/nodeapp
 
-# Install dependencies and security updates
-RUN apt update && \
-    apt upgrade -y && \
-    apt install -y \
+# Update packages, install only what’s needed, and clean up to reduce attack surface
+RUN apt-get update && \
+    apt-get upgrade -y && \
+    apt-get install -y \
         curl \
-        gnupg2 \
         ca-certificates \
+        nginx \
+        gnupg \
         lsb-release \
-        nginx && \
-    curl -fsSL https://deb.nodesource.com/setup_22.x | bash - && \
-    apt install -y nodejs && \
-    apt autoremove -y && \
-    apt clean && \
+        nodejs \
+        npm && \
+    apt-get autoremove -y && \
+    apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-# Copy application files
+# Copy app code and nginx config
 COPY . .
-
-# Copy and enable Nginx config
 COPY default.conf /etc/nginx/sites-available/default
-RUN ln -sf /etc/nginx/sites-available/default /etc/nginx/sites-enabled/default
 
 # Install Node.js dependencies
-RUN npm install
+RUN npm install --omit=dev
 
-# Expose required ports
-EXPOSE 80 443
+EXPOSE 80
+EXPOSE 443
 
-# Start Node and Nginx properly
-CMD bash -c "npm start & nginx -g 'daemon off;'"
+# Start both Node.js and Nginx
+CMD ["bash", "-c", "npm start & nginx -g 'daemon off;'"]
