@@ -1,23 +1,25 @@
-FROM node:22-slim
+# Use a minimal base image to reduce attack surface
+FROM node:22.2-slim
 
-WORKDIR /app
+# Set working directory
+WORKDIR /usr/src/app
 
-# Install Nginx
-RUN apt update && \
-    apt install -y --no-install-recommends nginx && \
-    apt clean && rm -rf /var/lib/apt/lists/*
+# Install Nginx only (no curl, gnupg2, etc.)
+RUN apt-get update && \
+    apt-get install -y nginx --no-install-recommends && \
+    rm -rf /var/lib/apt/lists/*
 
 # Copy app files
 COPY . .
 
-# Copy nginx config
+# Overwrite the default Nginx site config
 COPY default.conf /etc/nginx/sites-available/default
-RUN ln -sf /etc/nginx/sites-available/default /etc/nginx/sites-enabled/default
 
-# Install Node.js dependencies
+# Install node modules
 RUN npm install --omit=dev
 
-# Expose port
-EXPOSE 80
+# Expose ports
+EXPOSE 80 443
 
-CMD bash -c "npm start & nginx -g 'daemon off;'"
+# Start both nginx and the node app
+CMD ["sh", "-c", "service nginx start && npm start"]
