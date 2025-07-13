@@ -8,7 +8,11 @@ pipeline {
     stages {
         stage('Clone Repo') {
             steps {
-                git 'https://github.com/dexter73710/Myproject.git'
+                checkout([$class: 'GitSCM',
+                    branches: [[name: '*/main']],
+                    userRemoteConfigs: [[url: 'https://github.com/dexter73710/Myproject.git']],
+                    extensions: [[$class: 'CloneOption', depth: 0, noTags: false, shallow: false]]
+                ])
             }
         }
 
@@ -42,7 +46,7 @@ pipeline {
                            "-Dsonar.projectKey=big-bird " +
                            "-Dsonar.sources=. " +
                            "-Dsonar.host.url=http://sonarqube:9000 " +
-                           "-Dsonar.login=${SONAR_TOKEN}"
+                           "-Dsonar.token=${SONAR_TOKEN}"
                     }
                 }
             }
