@@ -1,6 +1,10 @@
 pipeline {
     agent any
 
+    environment {
+        SONAR_TOKEN = credentials('SONARQUBE_TOKEN')
+    }
+
     stages {
         stage('Clone Repo') {
             steps {
@@ -20,16 +24,26 @@ pipeline {
                     set -e
                     apt update && apt install -y wget gnupg2 dpkg
 
-                    # Install Trivy
                     wget -q https://github.com/aquasecurity/trivy/releases/download/v0.64.1/trivy_0.64.1_Linux-64bit.deb
                     dpkg -i trivy_0.64.1_Linux-64bit.deb
 
-                    # Get HTML template
                     wget -q -O html.tpl https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/html.tpl
-
-                    # Scan and generate report
                     trivy image --format template --template "@html.tpl" -o trivy-report.html my-nginx-image
                 '''
+            }
+        }
+
+        stage('SonarQube Analysis') {
+            steps {
+                withSonarQubeEnv('SonarQube') {
+                    sh """
+                        sonar-scanner \
+                        -Dsonar.projectKey=big-bird \
+                        -Dsonar.sources=. \
+                        -Dsonar.host.url=http://localhost:9000 \
+                        -Dsonar.login=$SONAR_TOKEN
+                    """
+                }
             }
         }
 
@@ -47,11 +61,11 @@ pipeline {
         always {
             archiveArtifacts artifacts: 'trivy-report.html', fingerprint: true
             publishHTML([
-                reportName           : 'Trivy Vulnerability Report',
-                reportDir            : '.',
-                reportFiles          : 'trivy-report.html',
-                keepAll              : true,
-                allowMissing         : false,
+                reportName: 'Trivy Vulnerability Report',
+                reportDir: '.',
+                reportFiles: 'trivy-report.html',
+                keepAll: true,
+                allowMissing: true,
                 alwaysLinkToLastBuild: true
             ])
         }
