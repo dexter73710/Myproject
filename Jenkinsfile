@@ -9,7 +9,7 @@ pipeline {
         stage('Clone Repo') {
             steps {
                 checkout([$class: 'GitSCM',
-                    branches: [[name: '*/main']],
+                    branches: [[name: '*/master']],
                     userRemoteConfigs: [[url: 'https://github.com/dexter73710/Myproject.git']],
                     extensions: [[$class: 'CloneOption', depth: 0, noTags: false, shallow: false]]
                 ])
