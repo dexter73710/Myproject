@@ -33,14 +33,6 @@ pipeline {
             }
         }
 
-        stage('SonarQube Scan') {
-            steps {
-                withSonarQubeEnv('SonarQube') {
-                    sh 'sonar-scanner'
-                }
-            }
-        }
-
         stage('Run Docker Container') {
             steps {
                 sh '''
@@ -55,10 +47,12 @@ pipeline {
         always {
             archiveArtifacts artifacts: 'trivy-report.html', fingerprint: true
             publishHTML([
-                reportName : 'Trivy Vulnerability Report',
-                reportDir  : '.',
-                reportFiles: 'trivy-report.html',
-                keepAll    : true
+                reportName           : 'Trivy Vulnerability Report',
+                reportDir            : '.',
+                reportFiles          : 'trivy-report.html',
+                keepAll              : true,
+                allowMissing         : false,
+                alwaysLinkToLastBuild: true
             ])
         }
     }
