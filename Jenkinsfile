@@ -41,7 +41,7 @@ pipeline {
                         sh "${scannerHome}/bin/sonar-scanner " +
                            "-Dsonar.projectKey=big-bird " +
                            "-Dsonar.sources=. " +
-                           "-Dsonar.host.url=http://localhost:9000 " +
+                           "-Dsonar.host.url=http://sonarqube:9000 " +
                            "-Dsonar.login=${SONAR_TOKEN}"
                     }
                 }
